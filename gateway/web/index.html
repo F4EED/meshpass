@@ -1,0 +1,332 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Passerelle Mesh — banc d'essai</title>
+    <style>
+      :root { font-family: Inter, system-ui, sans-serif; background: #0f172a; color: #e2e8f0; }
+      * { box-sizing: border-box; }
+      body { margin: 0; }
+      header { display: flex; align-items: center; gap: 16px; padding: 14px 24px; background: #1e293b; border-bottom: 1px solid #334155; flex-wrap: wrap; }
+      header h1 { font-size: 18px; margin: 0; }
+      .pill { padding: 4px 12px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+      .ok { background: #064e3b; color: #6ee7b7; border: 1px solid #059669; }
+      .off { background: #4c1d24; color: #fda4af; border: 1px solid #e11d48; }
+      nav { display: flex; gap: 4px; margin-left: auto; flex-wrap: wrap; }
+      nav button, .btn { background: #0284c7; color: #fff; border: none; border-radius: 8px; padding: 8px 14px; cursor: pointer; font-weight: 600; font-size: 13px; }
+      nav button { background: none; border: 1px solid transparent; color: #94a3b8; font-weight: 500; }
+      nav button.active { background: #0f172a; color: #f1f5f9; border-color: #334155; }
+      .btn.ghost { background: none; border: 1px solid #334155; color: #94a3b8; }
+      main { padding: 20px 24px 48px; max-width: 1100px; margin: 0 auto; }
+      .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+      .card { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 16px; margin-top: 14px; }
+      .card h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: #94a3b8; margin: 0 0 10px; }
+      .big { font-size: 26px; font-weight: 700; margin: 2px 0; }
+      .sub { font-size: 12px; color: #64748b; }
+      .hidden { display: none; }
+      table { width: 100%; border-collapse: collapse; font-size: 13px; }
+      th, td { text-align: left; padding: 9px 8px; border-bottom: 1px solid #334155; vertical-align: top; }
+      th { color: #94a3b8; font-weight: 600; }
+      label { font-size: 13px; display: block; margin: 8px 0 3px; color: #94a3b8; }
+      input, select { background: #0f172a; border: 1px solid #334155; border-radius: 8px; color: #e2e8f0; padding: 7px 10px; font-size: 13px; width: 100%; }
+      .row { display: flex; gap: 12px; flex-wrap: wrap; }
+      .row > div { flex: 1; min-width: 140px; }
+      .log { font-family: ui-monospace, monospace; font-size: 12px; line-height: 1.7; background: #020617; border: 1px solid #334155; border-radius: 10px; padding: 12px; max-height: 320px; overflow-y: auto; }
+      .relay { color: #93c5fd; } .drop { color: #fda4af; } .hold { color: #fcd34d; }
+      .login { max-width: 380px; margin: 12vh auto; }
+      .check { display: flex; align-items: center; gap: 8px; margin-top: 10px; color: #e2e8f0; font-size: 13px; }
+      .check input { width: auto; }
+      @media (max-width: 800px) { .grid { grid-template-columns: 1fr; } header { align-items: flex-start; } }
+    </style>
+  </head>
+  <body>
+    <section id="login" class="login card">
+      <h2>Passerelle Mesh — essai</h2>
+      <p class="sub">Modules simulés sur ce PC. Le mot de passe initial est <b>meshpass</b>.</p>
+      <label>Mot de passe</label>
+      <input id="password" type="password" value="meshpass" />
+      <button class="btn" id="enter">Entrer</button>
+      <p id="loginError" class="sub"></p>
+    </section>
+
+    <div id="app" class="hidden">
+      <header>
+        <h1>Passerelle Mesh — banc d'essai</h1>
+        <span class="pill ok" id="confPill"></span>
+        <span class="pill" id="mtPill"></span>
+        <span class="pill" id="mcPill"></span>
+        <nav>
+          <button class="active" data-tab="dash">Tableau de bord</button>
+          <button data-tab="bench">Banc d'essai</button>
+          <button data-tab="rules">Règles</button>
+          <button data-tab="black">Liste noire</button>
+          <button data-tab="links">Connexions</button>
+          <button data-tab="journal">Journal</button>
+          <button data-tab="settings">Réglages</button>
+        </nav>
+      </header>
+      <main>
+        <section id="dash">
+          <div class="grid">
+            <div class="card" style="margin:0"><h2>Relayés MT → MC</h2><p class="big" id="c1">0</p></div>
+            <div class="card" style="margin:0"><h2>Relayés MC → MT</h2><p class="big" id="c2">0</p></div>
+            <div class="card" style="margin:0"><h2>Ignorés</h2><p class="big" id="c3">0</p><p class="sub" id="motifs"></p></div>
+          </div>
+          <div class="card"><h2>Règles actives</h2><div id="dashRules"></div></div>
+        </section>
+
+        <section id="bench" class="hidden">
+          <div class="card">
+            <h2>Injecter un message simulé</h2>
+            <div class="row">
+              <div><label>Type</label><select id="kind"><option value="chat">Texte</option><option value="direct">Message direct</option><option value="position">Position</option><option value="measurement">Mesure</option><option value="detection">Détection</option></select></div>
+              <div><label>Réseau</label><select id="network"><option value="mt">Meshtastic</option><option value="mc">MeshCore</option></select></div>
+              <div><label>Canal</label><select id="channel"></select></div>
+            </div>
+            <div class="row">
+              <div><label>Nom affiché</label><input id="senderName" value="F4XYZ" /></div>
+              <div><label>Identifiant technique</label><input id="senderId" value="f4xyz" /></div>
+              <div><label>Texte</label><input id="text" value="Salut à tous" /></div>
+            </div>
+            <div class="row">
+              <div><label>Latitude</label><input id="lat" value="48.8567" /></div>
+              <div><label>Longitude</label><input id="lon" value="2.3522" /></div>
+              <div><label>Température</label><input id="temp" value="18" /></div>
+              <div><label>Batterie %</label><input id="bat" value="80" /></div>
+            </div>
+            <label class="check"><input type="checkbox" id="fromUs" /> Écho de notre propre module</label>
+            <label class="check"><input type="checkbox" id="repeatDet" /> Rappel du même état de détection</label>
+            <div class="row" style="margin-top:12px">
+              <button class="btn" id="inject">Envoyer dans le filtre</button>
+              <button class="btn ghost" id="flush">Émettre le groupe en attente</button>
+            </div>
+            <div id="result" class="log" style="margin-top:12px"></div>
+          </div>
+        </section>
+
+        <section id="rules" class="hidden">
+          <div class="card">
+            <h2>Nouvelle liaison</h2>
+            <div class="row">
+              <div><label>Canal Meshtastic</label><select id="ruleMt"></select></div>
+              <div><label>Sens</label><select id="ruleDir"><option value="bi">MT ⇄ MC</option><option value="mt2mc">MT → MC</option><option value="mc2mt">MC → MT</option></select></div>
+              <div><label>Room MeshCore</label><select id="ruleMc"></select></div>
+            </div>
+            <label class="check"><input type="checkbox" id="ruleCoal" /> Coalescence 30 s</label>
+            <label class="check"><input type="checkbox" id="rulePos" /> Positions</label>
+            <label class="check"><input type="checkbox" id="ruleMes" /> Mesures et détections</label>
+            <div class="row">
+              <div><label>Mot-clé exclu</label><input id="ruleExclude" placeholder="!pos" /></div>
+              <div><label>Identifiants autorisés</label><input id="ruleAllow" placeholder="vide = tout le monde" /></div>
+              <div><label>Identifiants bloqués</label><input id="ruleBlock" placeholder="id1, id2" /></div>
+            </div>
+            <button class="btn" id="addRule">Créer la liaison</button>
+            <table style="margin-top:14px"><thead><tr><th>Meshtastic</th><th>Sens</th><th>MeshCore</th><th>Options</th><th></th></tr></thead><tbody id="ruleRows"></tbody></table>
+          </div>
+        </section>
+
+        <section id="black" class="hidden">
+          <div class="card">
+            <h2>Liste noire</h2>
+            <p class="sub">Une ligne bloque un identifiant sur un seul réseau. Pour l'autre nom, ajoutez une seconde ligne.</p>
+            <div class="row">
+              <div><label>Réseau</label><select id="blNet"><option value="mt">Meshtastic</option><option value="mc">MeshCore</option></select></div>
+              <div><label>Identifiant technique</label><input id="blId" placeholder="f4xyz" /></div>
+              <div><label>Nom affiché</label><input id="blName" /></div>
+              <div><label>Motif</label><input id="blReason" placeholder="spam" /></div>
+            </div>
+            <button class="btn" id="addBl">Interdire le transfert</button>
+            <table style="margin-top:14px"><thead><tr><th>Nom</th><th>Identifiant</th><th>Réseau</th><th>Motif</th><th></th></tr></thead><tbody id="blRows"></tbody></table>
+          </div>
+        </section>
+
+        <section id="links" class="hidden">
+          <div class="card">
+            <h2>Modules simulés</h2>
+            <p class="sub">Sur ce PC il n'y a pas de radio. Le choix USB ou Bluetooth est mémorisé pour la future passerelle.</p>
+            <div class="row">
+              <div><label>Meshtastic</label><select id="ifMt"><option value="usb">USB</option><option value="ble">Bluetooth</option></select></div>
+              <div><label>MeshCore</label><select id="ifMc"><option value="usb">USB</option><option value="ble">Bluetooth</option></select></div>
+            </div>
+            <button class="btn" id="saveIf">Enregistrer les interfaces</button>
+          </div>
+        </section>
+
+        <section id="journal" class="hidden"><div class="card"><h2>Journal</h2><div id="fullLog" class="log"></div></div></section>
+
+        <section id="settings" class="hidden">
+          <div class="card">
+            <h2>Réglages</h2>
+            <div class="row">
+              <div><label>Préfixe Meshtastic</label><input id="pfxMt" /></div>
+              <div><label>Préfixe MeshCore</label><input id="pfxMc" /></div>
+              <div><label>TTL anti-doublon (min)</label><input id="ttl" /></div>
+            </div>
+            <div class="row">
+              <div><label>Quota discussion / min</label><input id="qChat" /></div>
+              <div><label>Quota positions et mesures / min</label><input id="qTel" /></div>
+              <div><label>Quota global / min</label><input id="qAll" /></div>
+            </div>
+            <label class="check"><input type="checkbox" id="withName" /> Inclure le nom dans le préfixe</label>
+            <div class="row">
+              <div><label>Nouveau mot de passe</label><input id="newPass" type="password" placeholder="laisser vide pour garder" /></div>
+            </div>
+            <button class="btn" id="saveSettings">Enregistrer</button>
+          </div>
+          <div class="card">
+            <h2>Configurations</h2>
+            <p class="sub">Un fichier .conf contient toute la passerelle : modules, canaux, règles, liste noire, préfixes et quotas. Le charger la restaure. Le mot de passe ne change pas.</p>
+            <div class="row">
+              <div><label>Fichiers</label><select id="confList"></select></div>
+              <div><label>Nom</label><input id="confName" placeholder="crise.conf" /></div>
+            </div>
+            <div class="row" style="margin-top:12px">
+              <button class="btn" id="saveConf">Enregistrer sous ce nom</button>
+              <button class="btn ghost" id="loadConf">Charger</button>
+              <button class="btn ghost" id="delConf">Supprimer</button>
+            </div>
+            <p id="confMsg" class="sub"></p>
+          </div>
+        </section>
+      </main>
+    </div>
+    <script>
+      let state = null;
+      const $ = (id) => document.getElementById(id);
+      async function api(path, body) {
+        const res = await fetch(path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body || {}) });
+        if (res.status === 401) { $("app").classList.add("hidden"); $("login").classList.remove("hidden"); throw new Error("auth"); }
+        return res.json();
+      }
+      async function refresh() {
+        const res = await fetch("/api/state");
+        if (res.status === 401) return;
+        state = await res.json();
+        paint();
+      }
+      function paint() {
+        const on = (net) => state.connected[net];
+        $("mtPill").className = "pill " + (on("mt") ? "ok" : "off");
+        $("mcPill").className = "pill " + (on("mc") ? "ok" : "off");
+        $("confPill").textContent = state.active_profile || "normal.conf";
+        $("mtPill").textContent = "Meshtastic simulé : " + state.settings.mt_interface.toUpperCase();
+        $("mcPill").textContent = "MeshCore simulé : " + state.settings.mc_interface.toUpperCase();
+        $("c1").textContent = state.stats.mt2mc;
+        $("c2").textContent = state.stats.mc2mt;
+        const drops = state.stats.drops || {};
+        const total = Object.values(drops).reduce((a, b) => a + b, 0);
+        $("c3").textContent = total;
+        $("motifs").textContent = Object.entries(drops).map(([k, v]) => k + " : " + v).join(" · ");
+        $("dashRules").innerHTML = state.rules.filter(r => r.active).map(r => `<p>${r.orphan ? "orpheline — " : ""}#${r.mt_name} ${r.direction} #${r.mc_name}</p>`).join("") || "<p class='sub'>Aucune règle active.</p>";
+        const dir = { bi: "MT ⇄ MC", mt2mc: "MT → MC", mc2mt: "MC → MT" };
+        $("ruleRows").innerHTML = state.rules.map(r => `<tr><td>#${r.mt_name}${r.orphan ? " (orphelin)" : ""}</td><td>${dir[r.direction]}</td><td>#${r.mc_name}</td><td>${r.positions ? "positions " : ""}${r.measurements ? "mesures " : ""}${r.coalesce ? "coalescence" : ""}</td><td><button class="btn ghost" data-del="${r.id}">✕</button></td></tr>`).join("");
+        $("blRows").innerHTML = state.blacklist.map(b => `<tr><td>${b.name}</td><td>${b.sender_id}</td><td>${b.network}</td><td>${b.reason || "—"}</td><td><button class="btn ghost" data-bldel="${b.id}">✕</button></td></tr>`).join("");
+        const lines = state.journal.map(j => `<div class="${j.action}">[${j.time}] ${j.action === "relay" ? "RELAYÉ" : j.action === "hold" ? "ATTENTE" : "IGNORÉ"} ${j.detail}</div>`).join("");
+        $("fullLog").innerHTML = lines;
+        const selected = $("confList").value;
+        $("confList").innerHTML = (state.profiles || []).map(name => `<option>${name}</option>`).join("");
+        if ([...$("confList").options].some(opt => opt.value === selected)) $("confList").value = selected;
+        if (!window._booted) {
+          fillChannels();
+          $("pfxMt").value = state.settings.prefix_mt;
+        $("pfxMc").value = state.settings.prefix_mc;
+        $("ttl").value = state.settings.dedup_ttl_min;
+        $("qChat").value = state.settings.quota_chat_per_min;
+        $("qTel").value = state.settings.quota_telemetry_per_min;
+        $("qAll").value = state.settings.quota_global_per_min;
+        $("withName").checked = state.settings.include_sender;
+        $("ifMt").value = state.settings.mt_interface;
+        $("ifMc").value = state.settings.mc_interface;
+          window._booted = true;
+        }
+      }
+      function fillChannels() {
+        const net = $("network").value;
+        const list = state.channels[net];
+        $("channel").innerHTML = list.map(c => `<option value="${c.id}">${c.name}</option>`).join("");
+        $("ruleMt").innerHTML = state.channels.mt.map(c => `<option value="${c.id}">${c.name}</option>`).join("");
+        $("ruleMc").innerHTML = state.channels.mc.map(c => `<option value="${c.id}">${c.name}</option>`).join("");
+      }
+      document.querySelectorAll("nav button").forEach(btn => btn.onclick = () => {
+        document.querySelectorAll("nav button").forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        ["dash", "bench", "rules", "black", "links", "journal", "settings"].forEach(id => $(id).classList.toggle("hidden", id !== btn.dataset.tab));
+      });
+      $("enter").onclick = async () => {
+        const res = await fetch("/api/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ password: $("password").value }) });
+        if (!res.ok) { $("loginError").textContent = "Mot de passe refusé."; return; }
+        $("login").classList.add("hidden");
+        $("app").classList.remove("hidden");
+        refresh();
+      };
+      $("network").onchange = () => state && fillChannels();
+      $("inject").onclick = async () => {
+        const metrics = {};
+        if ($("temp").value !== "") metrics.temp = Number($("temp").value);
+        if ($("bat").value !== "") metrics.bat = Number($("bat").value);
+        const data = await api("/api/inject", {
+          kind: $("kind").value, network: $("network").value, channel_id: $("channel").value,
+          sender_id: $("senderId").value, sender_name: $("senderName").value, text: $("text").value,
+          lat: $("lat").value, lon: $("lon").value, metrics, detection_repeat: $("repeatDet").checked,
+          from_our_module: $("fromUs").checked
+        });
+        $("result").innerHTML = (data.results || []).map(r => `<div class="${r.action}">${r.action === "relay" ? "RELAYÉ" : r.action === "hold" ? "EN ATTENTE" : "IGNORÉ"} — ${r.motif} — ${r.detail}</div>`).join("");
+        refresh();
+      };
+      $("flush").onclick = async () => { await api("/api/flush"); refresh(); };
+      $("addRule").onclick = async () => {
+        const ids = (value) => value.split(",").map(s => s.trim()).filter(Boolean);
+        await api("/api/rules", {
+          mt_channel_id: $("ruleMt").value, mc_channel_id: $("ruleMc").value, direction: $("ruleDir").value,
+          coalesce: $("ruleCoal").checked, positions: $("rulePos").checked, measurements: $("ruleMes").checked,
+          keyword_excluded: $("ruleExclude").value, allow_ids: ids($("ruleAllow").value), block_ids: ids($("ruleBlock").value), active: true
+        });
+        refresh();
+      };
+      $("ruleRows").onclick = async (ev) => {
+        const id = ev.target.dataset.del;
+        if (!id) return;
+        await api("/api/rules/delete", { id });
+        refresh();
+      };
+      $("addBl").onclick = async () => {
+        await api("/api/blacklist", { network: $("blNet").value, sender_id: $("blId").value, name: $("blName").value || $("blId").value, reason: $("blReason").value });
+        refresh();
+      };
+      $("blRows").onclick = async (ev) => {
+        const id = ev.target.dataset.bldel;
+        if (!id) return;
+        await api("/api/blacklist/delete", { id });
+        refresh();
+      };
+      $("saveIf").onclick = async () => { await api("/api/settings", { mt_interface: $("ifMt").value, mc_interface: $("ifMc").value }); refresh(); };
+      $("saveSettings").onclick = async () => {
+        await api("/api/settings", {
+          prefix_mt: $("pfxMt").value, prefix_mc: $("pfxMc").value, dedup_ttl_min: Number($("ttl").value),
+          quota_chat_per_min: Number($("qChat").value), quota_telemetry_per_min: Number($("qTel").value),
+          quota_global_per_min: Number($("qAll").value), include_sender: $("withName").checked, password: $("newPass").value
+        });
+        $("newPass").value = "";
+        refresh();
+      };
+      $("saveConf").onclick = async () => {
+        const data = await api("/api/profiles/save", { name: $("confName").value || $("confList").value });
+        $("confMsg").textContent = data.error ? data.error : "Enregistré : " + data.name;
+        refresh();
+      };
+      $("loadConf").onclick = async () => {
+        const data = await api("/api/profiles/load", { name: $("confList").value });
+        $("confMsg").textContent = data.error ? data.error : "Chargé : " + data.name;
+        window._booted = false;
+        refresh();
+      };
+      $("delConf").onclick = async () => {
+        const data = await api("/api/profiles/delete", { name: $("confList").value });
+        $("confMsg").textContent = data.error ? data.error : "Supprimé.";
+        refresh();
+      };
+      setInterval(() => { if (!$("app").classList.contains("hidden")) refresh(); }, 2000);
+    </script>
+  </body>
+</html>

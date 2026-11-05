@@ -1,0 +1,288 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Passerelle Mesh ⇄ — Administration</title>
+    <style>
+      :root { font-family: Inter, system-ui, sans-serif; background: #0f172a; color: #e2e8f0; margin: 0; }
+      * { box-sizing: border-box; }
+      header { display: flex; align-items: center; gap: 16px; padding: 14px 24px; background: #1e293b; border-bottom: 1px solid #334155; flex-wrap: wrap; }
+      header h1 { font-size: 18px; margin: 0; }
+      .pill { padding: 4px 12px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+      .ok { background: #064e3b; color: #6ee7b7; border: 1px solid #059669; }
+      .off { background: #4c1d24; color: #fda4af; border: 1px solid #e11d48; }
+      nav { display: flex; gap: 4px; margin-left: auto; flex-wrap: wrap; }
+      nav button { background: none; border: 1px solid transparent; color: #94a3b8; padding: 6px 14px; border-radius: 8px; cursor: pointer; font-size: 13px; }
+      nav button.active { background: #0f172a; color: #f1f5f9; border-color: #334155; }
+      main { padding: 20px 24px; max-width: 1100px; margin: 0 auto; }
+      .grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+      .card { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 16px; }
+      .card h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: #94a3b8; margin: 0 0 10px; }
+      .big { font-size: 26px; font-weight: 700; margin: 2px 0; }
+      .sub { font-size: 12px; color: #64748b; }
+      .cols { display: grid; grid-template-columns: 1fr auto 1fr; gap: 14px; align-items: start; margin-top: 14px; }
+      .chan { border: 1px solid #334155; border-radius: 8px; padding: 8px 12px; margin-bottom: 8px; font-size: 13px; display: flex; justify-content: space-between; cursor: pointer; }
+      .chan.sel { border-color: #38bdf8; background: #082f49; }
+      .tag { font-size: 10px; color: #64748b; }
+      .arrow { display: flex; flex-direction: column; align-items: center; gap: 6px; padding-top: 20px; }
+      .arrow button { background: #0f172a; border: 1px solid #334155; color: #e2e8f0; border-radius: 8px; padding: 8px 10px; cursor: pointer; font-size: 13px; }
+      .arrow button.active { border-color: #38bdf8; color: #38bdf8; font-weight: 700; }
+      table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 14px; }
+      th, td { text-align: left; padding: 9px 10px; border-bottom: 1px solid #334155; }
+      th { color: #94a3b8; font-weight: 600; }
+      .dir { font-weight: 700; }
+      .btn { background: #0284c7; color: #fff; border: none; border-radius: 8px; padding: 8px 16px; cursor: pointer; font-weight: 600; font-size: 13px; margin-top: 12px; }
+      .btn.ghost { background: none; border: 1px solid #334155; color: #94a3b8; }
+      .log { font-family: ui-monospace, monospace; font-size: 12px; line-height: 1.7; background: #020617; border: 1px solid #334155; border-radius: 10px; padding: 12px; margin-top: 14px; max-height: 200px; overflow-y: auto; }
+      .in { color: #6ee7b7; } .out { color: #93c5fd; } .drop { color: #fda4af; }
+      .switch { position: relative; width: 34px; height: 18px; background: #334155; border-radius: 999px; display: inline-block; cursor: pointer; flex: none; }
+      .switch.on { background: #059669; }
+      .switch::after { content: ""; position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%; background: #e2e8f0; }
+      .switch.on::after { left: 18px; }
+      .hidden { display: none; }
+      fieldset { border: 1px solid #334155; border-radius: 10px; margin: 14px 0; }
+      legend { font-size: 12px; color: #94a3b8; padding: 0 8px; }
+      label { font-size: 13px; display: block; margin: 8px 0 3px; color: #94a3b8; }
+      input, select { background: #0f172a; border: 1px solid #334155; border-radius: 8px; color: #e2e8f0; padding: 7px 10px; font-size: 13px; width: 100%; }
+      .row { display: flex; gap: 12px; } .row > div { flex: 1; }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>⇄ Passerelle Mesh — Administration</h1>
+      <span class="pill ok" id="mtPill">Client Meshtastic : USB connecté (XIAO nRF52840)</span>
+      <span class="pill ok" id="mcPill">Companion MeshCore : USB connecté (XIAO nRF52840)</span>
+      <nav>
+        <button class="active" onclick="show('dash', this)">Tableau de bord</button>
+        <button onclick="show('rules', this)">Règles</button>
+        <button onclick="show('blacklist', this)">Liste noire</button>
+        <button onclick="show('connect', this)">Connexions</button>
+        <button onclick="show('settings', this)">Réglages</button>
+      </nav>
+    </header>
+
+    <main>
+      <!-- TABLEAU DE BORD -->
+      <section id="dash">
+        <div class="grid">
+          <div class="card"><h2>Relayés MT → MC</h2><p class="big" id="c1">312</p><p class="sub">depuis 24 h</p></div>
+          <div class="card"><h2>Relayés MC → MT</h2><p class="big" id="c2">188</p><p class="sub">depuis 24 h</p></div>
+          <div class="card"><h2>Ignorés (anti-boucle)</h2><p class="big" id="c3">43</p><p class="sub">écho : 21 · préfixe : 12 · doublon : 7 · liste noire : 3</p></div>
+        </div>
+
+        <div class="cols">
+          <div class="card"><h2>Canaux Meshtastic <span class="tag">(lus depuis le client)</span></h2>
+            <div id="mtChans"></div>
+            <button class="btn ghost" onclick="alert('→ Relecture des canaux du client Meshtastic')">⟳ Rescanner</button>
+          </div>
+          <div class="arrow">
+            <button onclick="setDir('mt2mc')" id="b-mt2mc">MT → MC</button>
+            <button onclick="setDir('bi')" class="active" id="b-bi">MT ⇄ MC</button>
+            <button onclick="setDir('mc2mt')" id="b-mc2mt">MC → MT</button>
+            <button class="btn" onclick="addRule()">Créer la liaison</button>
+            <label style="display:flex;align-items:center;gap:8px;color:#e2e8f0;font-size:13px;max-width:150px;text-align:center">
+              <span class="switch" id="coalSwitch" onclick="this.classList.toggle('on')"></span>
+              Coalescence (1 message / 30 s)
+            </label>
+          </div>
+          <div class="card"><h2>Rooms MeshCore <span class="tag">(lues depuis le companion)</span></h2>
+            <div id="mcChans"></div>
+            <button class="btn ghost" onclick="alert('→ Relecture des rooms du companion MeshCore')">⟳ Rescanner</button>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:14px"><h2>Journal en direct</h2>
+          <div class="log" id="log"></div>
+        </div>
+      </section>
+
+      <!-- REGLES -->
+      <section id="rules" class="hidden">
+        <div class="card">
+          <h2>Règles de liaison</h2>
+          <table>
+            <thead><tr><th>Canal Meshtastic</th><th></th><th>Room MeshCore</th><th>Sens</th><th>Coalescence</th><th>Actif</th><th></th></tr></thead>
+            <tbody id="ruleRows"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- LISTE NOIRE -->
+      <section id="blacklist" class="hidden">
+        <div class="card">
+          <h2>Liste noire — utilisateurs interdits de transfert</h2>
+          <p class="sub" style="margin:0 0 12px">Leurs messages ne sont jamais relayés vers l'autre réseau, quelle que soit la règle. Ils continuent de recevoir les messages de leur propre réseau.</p>
+          <div class="row">
+            <div><label>Utilisateur (nœuds connus)</label>
+              <input list="knownNodes" id="blInput" placeholder="Rechercher un nœud Meshtastic ou MeshCore…" />
+              <datalist id="knownNodes">
+                <option value="F4XYZ — Meshtastic"></option><option value="VE9ABC — MeshCore"></option>
+                <option value="bot — Meshtastic"></option><option value="spam73 — MeshCore"></option>
+              </datalist>
+            </div>
+            <div><label>Motif (optionnel)</label><input id="blReason" placeholder="spam, comportement…" /></div>
+            <div style="display:flex;align-items:flex-end">
+              <button class="btn" style="margin:0" onclick="addBl()">Interdire le transfert</button>
+            </div>
+          </div>
+          <table>
+            <thead><tr><th>Utilisateur</th><th>Réseau</th><th>Motif</th><th>Aussi dans l'autre réseau</th><th>Ajouté le</th><th></th></tr></thead>
+            <tbody id="blRows"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- CONNEXIONS -->
+      <section id="connect" class="hidden">
+        <div class="card">
+          <h2>Module Meshtastic (client)</h2>
+          <fieldset><legend>Interface</legend>
+            <div class="row">
+              <div><label>Type</label><select id="mtIf"><option>USB — /dev/ttyACM0 (XIAO nRF52840)</option><option>Bluetooth — T-Beam BLE</option></select></div>
+              <div><label>État du module</label><input value="Connecté — XIAO nRF52840, firmware 2.8" disabled /></div>
+              <div style="display:flex;align-items:flex-end"><button class="btn ghost" style="margin:0" onclick="alert('→ Test de la connexion Meshtastic')">Tester</button></div>
+            </div>
+            <p class="sub">Reconnaissance auto à l'insertion USB : le module est interrogé (question Meshtastic, puis question MeshCore, 8 s d'attente) — un companion ne peut pas être pris pour un client Meshtastic.</p>
+          </fieldset>
+          <h2 style="margin-top:20px">Module MeshCore (companion / répéteur)</h2>
+          <fieldset><legend>Interface</legend>
+            <div class="row">
+              <div><label>Type</label><select id="mcIf"><option>USB — /dev/ttyACM1 (XIAO nRF52840)</option><option>Bluetooth — Companion BLE</option></select></div>
+              <div><label>État du module</label><input value="Connecté — XIAO nRF52840, companion" disabled /></div>
+              <div style="display:flex;align-items:flex-end"><button class="btn ghost" style="margin:0" onclick="alert('→ Test de la connexion MeshCore')">Tester</button></div>
+            </div>
+          </fieldset>
+          <p class="sub">Reconnexion automatique (backoff) en cas de débranchement ou de perte de liaison ; reprise du relais sans intervention.</p>
+        </div>
+      </section>
+
+      <!-- REGLAGES -->
+      <section id="settings" class="hidden">
+        <div class="card">
+          <h2>Anti-bouclage & préfixes</h2>
+          <div class="row">
+            <div><label>Préfixe des messages venant de Meshtastic</label><input value="[MT]" /></div>
+            <div><label>Préfixe des messages venant de MeshCore</label><input value="[MC]" /></div>
+            <div><label>TTL du cache anti-doublon (min)</label><input value="10" /></div>
+          </div>
+          <div class="row">
+            <div><label>Inclure l'expéditeur dans le préfixe</label><select><option>[MT|CallSign]</option><option>[MT] seul</option></select></div>
+            <div><label>Quota / règle (msgs/min)</label><input value="6" /></div>
+            <div><label>Quota global (msgs/min)</label><input value="60" /></div>
+          </div>
+          <div class="row">
+            <div><label>File d'attente max</label><input value="10" /></div>
+            <div><label>Heures silencieuses</label><input value="désactivé" /></div>
+            <div><label>Taille max du message côté MeshCore</label><input value="200 octets" /></div>
+          </div>
+          <label style="display:flex;align-items:center;gap:8px;margin-top:12px;color:#e2e8f0">
+            <span class="switch on" onclick="this.classList.toggle('on')"></span>
+            Ignorer les échos de nos propres modules (anti-écho) — sans cette option, tout serait doublé
+          </label>
+          <h2 style="margin-top:20px">Serveur web & accès</h2>
+          <div class="row">
+            <div><label>Port HTTP</label><input value="8080" /></div>
+            <div><label>Accès</label><input value="Wi-Fi du Pi Zero 2 W (LAN / hotspot)" disabled /></div>
+            <div><label>Mot de passe admin</label><input type="password" value="••••••••" /></div>
+          </div>
+          <button class="btn">Enregistrer</button>
+        </div>
+      </section>
+    </main>
+
+    <script>
+      const mtChans = [{ n: "general", t: "canal 0 · PSI public" }, { n: "secours", t: "canal 1 · AES" }, { n: "meteo", t: "canal 2" }];
+      const mcChans = [{ n: "default", t: "public" }, { n: "urgence", t: "AES-256" }];
+      let selMt = null, selMc = null, mtCount = 312, mcCount = 188, dropCount = 43;
+      const rules = [
+        { mt: "general", mc: "default", dir: "MT ⇄ MC", on: true, coal: true },
+        { mt: "secours", mc: "urgence", dir: "MC → MT", on: true, coal: false },
+        { mt: "meteo", mc: "default", dir: "MT → MC", on: false, coal: false }
+      ];
+      const blacklist = [
+        { u: "spam73", net: "MeshCore", reason: "spam répété", both: true, date: "02/11/2026" },
+        { u: "bot", net: "Meshtastic", reason: "messages automatiques", both: false, date: "28/10/2026" }
+      ];
+
+      function renderChans() {
+        document.getElementById("mtChans").innerHTML = mtChans.map((c, i) =>
+          `<div class="chan ${selMt === i ? "sel" : ""}" onclick="pick('mt',${i})"><span>#${c.n}</span><span class="tag">${c.t}</span></div>`).join("");
+        document.getElementById("mcChans").innerHTML = mcChans.map((c, i) =>
+          `<div class="chan ${selMc === i ? "sel" : ""}" onclick="pick('mc',${i})"><span>#${c.n}</span><span class="tag">${c.t}</span></div>`).join("");
+      }
+      function pick(s, i) { if (s === "mt") selMt = i; else selMc = i; renderChans(); }
+      function setDir(d) {
+        ["mt2mc", "bi", "mc2mt"].forEach(x => document.getElementById("b-" + x).classList.remove("active"));
+        document.getElementById("b-" + d).classList.add("active");
+        window._dirLabel = { mt2mc: "MT → MC", bi: "MT ⇄ MC", mc2mt: "MC → MT" }[d];
+      }
+      window._dirLabel = "MT ⇄ MC";
+      function addRule() {
+        if (selMt === null || selMc === null) { alert("Sélectionnez un canal de chaque côté."); return; }
+        rules.push({ mt: mtChans[selMt].n, mc: mcChans[selMc].n, dir: window._dirLabel, on: true, coal: document.getElementById("coalSwitch").classList.contains("on") });
+        renderRules();
+      }
+      function toggle(i) { rules[i].on = !rules[i].on; renderRules(); }
+      function toggleCoal(i) { rules[i].coal = !rules[i].coal; renderRules(); }
+      function del(i, ev) { ev.stopPropagation(); rules.splice(i, 1); renderRules(); }
+      function renderRules() {
+        document.getElementById("ruleRows").innerHTML = rules.map((r, i) =>
+          `<tr><td>#${r.mt}</td><td class="dir">${r.dir}</td><td>#${r.mc}</td>
+           <td><span class="switch ${r.coal ? "on" : ""}" onclick="toggleCoal(${i})" title="Coalescence 30 s"></span></td>
+           <td>${r.on ? "actif" : "suspendu"}</td>
+           <td><span class="switch ${r.on ? "on" : ""}" onclick="toggle(${i})"></span></td>
+           <td><button class="btn ghost" style="margin:0;padding:4px 10px" onclick="del(${i},event)">✕</button></td></tr>`).join("");
+      }
+      function addBl() {
+        const v = document.getElementById("blInput").value.trim();
+        if (!v) { alert("Choisissez un utilisateur dans la liste."); return; }
+        const name = v.split(" — ")[0], net = v.includes("MeshCore") ? "MeshCore" : "Meshtastic";
+        blacklist.push({ u: name, net, reason: document.getElementById("blReason").value, both: false, date: new Date().toLocaleDateString("fr-FR") });
+        document.getElementById("blInput").value = ""; document.getElementById("blReason").value = "";
+        renderBl();
+      }
+      function toggleBoth(i) { blacklist[i].both = !blacklist[i].both; renderBl(); }
+      function delBl(i, ev) { ev.stopPropagation(); blacklist.splice(i, 1); renderBl(); }
+      function renderBl() {
+        document.getElementById("blRows").innerHTML = blacklist.map((b, i) =>
+          `<tr><td>${b.u}</td><td>${b.net}</td><td>${b.reason || "—"}</td>
+           <td><span class="switch ${b.both ? "on" : ""}" onclick="toggleBoth(${i})" title="Bloquer aussi son identité dans l'autre réseau"></span></td>
+           <td>${b.date}</td>
+           <td><button class="btn ghost" style="margin:0;padding:4px 10px" onclick="delBl(${i},event)">✕</button></td></tr>`).join("");
+      }
+      function show(id, btn) {
+        ["dash", "rules", "blacklist", "connect", "settings"].forEach(s => document.getElementById(s).classList.toggle("hidden", s !== id));
+        document.querySelectorAll("nav button").forEach(b => b.classList.remove("active")); btn.classList.add("active");
+      }
+
+      const log = document.getElementById("log");
+      const samples = [
+        ['in', 'MT #general ← F4XYZ (USB) : « Salut à tous » → relais vers MC #default'],
+        ['out', 'MC #default (companion) → [MT] Salut à tous'],
+        ['drop', 'écho de notre companion — non retransmis (anti-écho EF-11)'],
+        ['in', 'MC #default ← VE9ABC : « Hi » → relais vers MT #general'],
+        ['out', 'MT #general (client) → [MC] Hi'],
+        ['drop', 'MT #general : [MC] Hi — doublon (cache TTL), non retransmis'],
+        ['drop', 'MC #default ← spam73 : « achetez… » — liste noire, non retransmis']
+      ];
+      let si = 0;
+      function tick() {
+        const [cls, msg] = samples[si % samples.length]; si++;
+        const d = document.createElement("div");
+        d.className = cls;
+        const time = new Date().toLocaleTimeString("fr-FR");
+        d.textContent = `[${time}] ${cls === "in" ? "REÇU   " : cls === "out" ? "RELAYÉ " : "IGNORÉ "} ${msg}`;
+        log.appendChild(d); log.scrollTop = log.scrollHeight;
+        if (cls === "out") { if (msg.includes("[MT]")) mtCount++; else mcCount++; }
+        if (cls === "drop") dropCount++;
+        document.getElementById("c1").textContent = mtCount.toLocaleString("fr-FR");
+        document.getElementById("c2").textContent = mcCount.toLocaleString("fr-FR");
+        document.getElementById("c3").textContent = dropCount.toLocaleString("fr-FR");
+      }
+      renderChans(); renderRules(); renderBl();
+      tick(); tick(); tick();
+      setInterval(tick, 3000);
+    </script>
+  </body>
+</html>
